@@ -113,35 +113,33 @@ func handleExecuteRequest(stream pb.FlowEdge_CommunicateClient, req *pb.ExecuteR
 
 	switch req.ShellCommand {
 	case "containerList":
-		containers, err := ListContainers()
+		result, err := ListContainers()
 		if err != nil {
 			errStr = err.Error()
 			exitCode = 1
 		} else {
-			output = containers
+			output = result
 		}
 	case "containerCreate":
-
+		result, err := CreateContainers()
+		if err != nil {
+			errStr = err.Error()
+			exitCode = 1
+		} else {
+			output = result
+		}
+	case "containerStart":
+		result, err := StartContainers()
+		if err != nil {
+			errStr = err.Error()
+			exitCode = 1
+		} else {
+			output = result
+		}
 	default:
 		log.Printf("Unknown command: %s", req.ShellCommand)
 		errStr = errors.New(fmt.Sprintf("Unknown command: %s", req.ShellCommand)).Error()
 	}
-
-	//resp, err := http.Get("http://127.0.0.1:2375/containers/json")
-	//if err != nil {
-	//	errStr = err.Error()
-	//	exitCode = 1
-	//} else {
-	//	defer resp.Body.Close()
-	//	body, err := io.ReadAll(resp.Body)
-	//	if err != nil {
-	//		errStr = "read body error: " + err.Error()
-	//		exitCode = 2
-	//	} else {
-	//		output = string(body)
-	//	}
-	//}
-
 	sendExecuteResponse(stream, req.CommandId, exitCode, output, errStr)
 }
 

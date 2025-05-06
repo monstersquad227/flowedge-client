@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"flowedge-client/utils"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
 )
@@ -29,4 +30,44 @@ func ListContainers() (string, error) {
 		return "", err
 	}
 	return string(bytes), nil
+}
+
+func CreateContainers() (string, error) {
+	dockerClient, err := newDockerClient()
+	if err != nil {
+		return "", err
+	}
+	result, err := dockerClient.ContainerCreate(context.Background(),
+		&container.Config{
+			User:  "root",
+			Image: "harbor.chengduoduo.com/dev/auth:20250328_164355-2c271beb",
+		},
+		&container.HostConfig{
+			Binds: []string{
+				"/data/logs/:/data/logs",
+				"/etc/localtime:/etc/localtime:ro",
+			},
+			NetworkMode: "host",
+			Privileged:  true,
+			RestartPolicy: container.RestartPolicy{
+				Name:              "on-failure",
+				MaximumRetryCount: 5,
+			},
+		}, nil, nil, utils.GetAgentID())
+	if err != nil {
+		return "", err
+	}
+	return result.ID, nil
+}
+
+func StartContainers() (string, error) {
+	dockerClient, err := newDockerClient()
+	if err != nil {
+		return "", err
+	}
+	err = dockerClient.ContainerStart(context.Background(), utils.GetAgentID(), container.StartOptions{})
+	if err != nil {
+		return "", err
+	}
+	return utils.GetAgentID(), nil
 }

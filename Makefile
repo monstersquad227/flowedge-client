@@ -8,3 +8,13 @@ help: ## Display this help.
 generate: ## Generated Files
 	@rm -rf ./flowedge_client
 	GOOS=linux GOARCH=amd64 go build -v -o flowedge_client
+
+.PHONY: generate-mac-amd64
+generate-mac-amd64: ## iMac 因特尔芯片 包
+	@rm -rf ./flowedge_client
+	GOOS=darwin GOARCH=amd64 go build -v -o flowedge_client
+
+.PHONY: generate-win
+generate-win: ## Windows 包
+	@rm -rf ./flowedge_client.exe
+	GOOS=windows GOARCH=amd64 go build -v -o flowedge_client.exe
