@@ -41,11 +41,22 @@ func connectAndServe(serverAddr, agentID string) error {
 		return err
 	}
 
+	// 控制心跳生命周期
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	go startHeartbeat(ctx, stream, agentID, done)
+
+	err = receiveAndHandleMessages(stream, agentID)
+
+	cancel()
+	<-done // 等心跳 goroutine 退出后再 return
+
 	// 启动心跳
-	go startHeartbeat(stream, agentID)
+	//go startHeartbeat(stream, agentID)
 
 	// 接收并处理请求
-	return receiveAndHandleMessages(stream, agentID)
+	return err
+	//return receiveAndHandleMessages(stream, agentID)
 }
 
 func sendRegister(stream pb.FlowEdge_CommunicateClient, agentID string) error {
@@ -63,25 +74,53 @@ func sendRegister(stream pb.FlowEdge_CommunicateClient, agentID string) error {
 	return stream.Send(msg)
 }
 
-func startHeartbeat(stream pb.FlowEdge_CommunicateClient, agentID string) {
+func startHeartbeat(ctx context.Context, stream pb.FlowEdge_CommunicateClient, agentID string, done chan struct{}) {
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+	defer close(done) // 心跳退出，通知外部
+
 	for {
-		time.Sleep(5 * time.Second)
-		msg := &pb.StreamMessage{
-			Type: pb.MessageType_HEARTBEAT,
-			Body: &pb.StreamMessage_Heartbeat{
-				Heartbeat: &pb.HeartbeatMessage{
-					AgentId:   agentID,
-					Timestamp: time.Now().Unix(),
+		select {
+		case <-ctx.Done():
+			log.Printf("Heartbeat context canceled for %s", agentID)
+			return
+		case <-ticker.C:
+			msg := &pb.StreamMessage{
+				Type: pb.MessageType_HEARTBEAT,
+				Body: &pb.StreamMessage_Heartbeat{
+					Heartbeat: &pb.HeartbeatMessage{
+						AgentId:   agentID,
+						Timestamp: time.Now().Unix(),
+					},
 				},
-			},
-		}
-		err := stream.Send(msg)
-		if err != nil {
-			log.Printf("Heartbeat error: %v", err)
-		} else {
-			log.Printf("Sent heartbeat for %s", agentID)
+			}
+			err := stream.Send(msg)
+			if err != nil {
+				log.Printf("Heartbeat error: %v", err)
+				return // 连接断开，退出
+			} else {
+				log.Printf("Sent heartbeat for %s", agentID)
+			}
 		}
 	}
+	//for {
+	//	time.Sleep(5 * time.Second)
+	//	msg := &pb.StreamMessage{
+	//		Type: pb.MessageType_HEARTBEAT,
+	//		Body: &pb.StreamMessage_Heartbeat{
+	//			Heartbeat: &pb.HeartbeatMessage{
+	//				AgentId:   agentID,
+	//				Timestamp: time.Now().Unix(),
+	//			},
+	//		},
+	//	}
+	//	err := stream.Send(msg)
+	//	if err != nil {
+	//		log.Printf("Heartbeat error: %v", err)
+	//	} else {
+	//		log.Printf("Sent heartbeat for %s", agentID)
+	//	}
+	//}
 }
 
 func receiveAndHandleMessages(stream pb.FlowEdge_CommunicateClient, agentID string) error {

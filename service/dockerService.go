@@ -76,18 +76,32 @@ func CreateContainers(image string) (string, error) {
 		&container.Config{
 			User:  "root",
 			Image: image,
+			//ExposedPorts: nat.PortSet{
+			//	"8500/tcp": struct{}{},
+			//},
 		},
 		&container.HostConfig{
+			// Linux 服务器映射目录
 			Binds: []string{
 				"/data/logs/:/data/logs",
 				"/etc/localtime:/etc/localtime:ro",
 			},
+			// host 模式
 			NetworkMode: "host",
 			Privileged:  true,
 			RestartPolicy: container.RestartPolicy{
 				Name:              "on-failure",
 				MaximumRetryCount: 5,
 			},
+			// 不使用host模式的端口映射
+			//PortBindings: nat.PortMap{
+			//	"8500/tcp": []nat.PortBinding{
+			//		{
+			//			HostIP:   "0.0.0.0",
+			//			HostPort: "8500",
+			//		},
+			//	},
+			//},
 		}, nil, nil, utils.GetAgentID())
 	if err != nil {
 		return "", err
