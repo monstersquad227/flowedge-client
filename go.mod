@@ -4,7 +4,7 @@ go 1.24.2
 
 require (
 	github.com/docker/docker v28.1.1+incompatible
-	github.com/monstersquad227/flowedge-proto v0.0.0-20250506025842-044c1c851acc
+	github.com/monstersquad227/flowedge-proto v0.0.0-20250506094424-76ec1da29134
 	google.golang.org/grpc v1.72.0
 )
 

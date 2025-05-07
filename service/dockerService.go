@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"flowedge-client/utils"
 	"github.com/docker/docker/api/types/container"
+	image2 "github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/client"
+	"io/ioutil"
 )
 
 func newDockerClient() (*client.Client, error) {
@@ -14,6 +16,39 @@ func newDockerClient() (*client.Client, error) {
 		return nil, err
 	}
 	return apiClient, nil
+}
+
+func containerDragon(image string) (string, error) {
+	dockerClient, err := newDockerClient()
+	if err != nil {
+		return "", err
+	}
+	_, err = PullImage(image)
+	if err != nil {
+		return "", err
+	}
+
+	containers, err := dockerClient.ContainerList(context.Background(), container.ListOptions{All: true})
+	if err != nil {
+		return "", err
+	}
+	for _, value := range containers {
+		err = dockerClient.ContainerRemove(context.Background(), value.ID, container.RemoveOptions{Force: true})
+		if err != nil {
+			return "", err
+		}
+	}
+
+	_, err = CreateContainers(image)
+	if err != nil {
+		return "", err
+	}
+
+	result, err := StartContainers()
+	if err != nil {
+		return "", err
+	}
+	return result, nil
 }
 
 func ListContainers() (string, error) {
@@ -32,7 +67,7 @@ func ListContainers() (string, error) {
 	return string(bytes), nil
 }
 
-func CreateContainers() (string, error) {
+func CreateContainers(image string) (string, error) {
 	dockerClient, err := newDockerClient()
 	if err != nil {
 		return "", err
@@ -40,7 +75,7 @@ func CreateContainers() (string, error) {
 	result, err := dockerClient.ContainerCreate(context.Background(),
 		&container.Config{
 			User:  "root",
-			Image: "harbor.chengduoduo.com/dev/auth:20250328_164355-2c271beb",
+			Image: image,
 		},
 		&container.HostConfig{
 			Binds: []string{
@@ -70,4 +105,61 @@ func StartContainers() (string, error) {
 		return "", err
 	}
 	return utils.GetAgentID(), nil
+}
+
+func StopContainer(containerID string) (string, error) {
+	dockerClient, err := newDockerClient()
+	if err != nil {
+		return "", err
+	}
+	err = dockerClient.ContainerStop(context.Background(), containerID, container.StopOptions{})
+	if err != nil {
+		return "", err
+	}
+	return "Ok", nil
+}
+
+func RemoveContainer(containerID string) (string, error) {
+	dockerClient, err := newDockerClient()
+	if err != nil {
+		return "", err
+	}
+	err = dockerClient.ContainerRemove(context.Background(), containerID, container.RemoveOptions{Force: true})
+	if err != nil {
+		return "", err
+	}
+	return "Ok", nil
+}
+
+func PullImage(image string) (string, error) {
+	dockerClient, err := newDockerClient()
+	if err != nil {
+		return "", err
+	}
+	result, err := dockerClient.ImagePull(context.Background(), image, image2.PullOptions{})
+	if err != nil {
+		return "", err
+	}
+	defer result.Close()
+	bytes, err := ioutil.ReadAll(result)
+	if err != nil {
+		return "", err
+	}
+	return string(bytes), nil
+}
+
+func ListImage() (string, error) {
+	dockerClient, err := newDockerClient()
+	if err != nil {
+		return "", err
+	}
+	images, err := dockerClient.ImageList(context.Background(), image2.ListOptions{})
+	if err != nil {
+		return "", err
+	}
+	bytes, err := json.MarshalIndent(images, "", "  ")
+	if err != nil {
+		return "", err
+	}
+	return string(bytes), nil
 }

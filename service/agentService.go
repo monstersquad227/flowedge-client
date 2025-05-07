@@ -105,13 +105,13 @@ func receiveAndHandleMessages(stream pb.FlowEdge_CommunicateClient, agentID stri
 }
 
 func handleExecuteRequest(stream pb.FlowEdge_CommunicateClient, req *pb.ExecuteRequest) {
-	log.Printf("Executing command: %s", req.ShellCommand)
+	log.Printf("Executing command: %s", req.Command)
 
 	var output string
 	var errStr string
 	var exitCode int32 = 0
 
-	switch req.ShellCommand {
+	switch req.Command {
 	case "containerList":
 		result, err := ListContainers()
 		if err != nil {
@@ -121,7 +121,7 @@ func handleExecuteRequest(stream pb.FlowEdge_CommunicateClient, req *pb.ExecuteR
 			output = result
 		}
 	case "containerCreate":
-		result, err := CreateContainers()
+		result, err := CreateContainers(req.Image)
 		if err != nil {
 			errStr = err.Error()
 			exitCode = 1
@@ -136,9 +136,49 @@ func handleExecuteRequest(stream pb.FlowEdge_CommunicateClient, req *pb.ExecuteR
 		} else {
 			output = result
 		}
+	case "containerStop":
+		result, err := StopContainer(req.ContainerId)
+		if err != nil {
+			errStr = err.Error()
+			exitCode = 1
+		} else {
+			output = result
+		}
+	case "containerRemove":
+		result, err := RemoveContainer(req.ContainerId)
+		if err != nil {
+			errStr = err.Error()
+			exitCode = 1
+		} else {
+			output = result
+		}
+	case "containerDragon":
+		result, err := containerDragon(req.Image)
+		if err != nil {
+			errStr = err.Error()
+			exitCode = 1
+		} else {
+			output = result
+		}
+	case "imagePull":
+		result, err := PullImage(req.Image)
+		if err != nil {
+			errStr = err.Error()
+			exitCode = 1
+		} else {
+			output = result
+		}
+	case "imageList":
+		result, err := ListImage()
+		if err != nil {
+			errStr = err.Error()
+			exitCode = 1
+		} else {
+			output = result
+		}
 	default:
-		log.Printf("Unknown command: %s", req.ShellCommand)
-		errStr = errors.New(fmt.Sprintf("Unknown command: %s", req.ShellCommand)).Error()
+		log.Printf("Unknown command: %s", req.Command)
+		errStr = errors.New(fmt.Sprintf("Unknown command: %s", req.Command)).Error()
 	}
 	sendExecuteResponse(stream, req.CommandId, exitCode, output, errStr)
 }
