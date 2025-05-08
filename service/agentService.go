@@ -2,21 +2,23 @@ package service
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"flowedge-client/utils"
 	"fmt"
 	pb "github.com/monstersquad227/flowedge-proto"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"io"
 	"log"
 	"time"
 )
 
-func StartAgent(serverAddr string) {
+func StartAgent(serverAddr string, tlsConfig *tls.Config) {
 	agentID := utils.GetAgentID()
 	for {
 		log.Printf("Connecting to %s ...", serverAddr)
-		err := connectAndServe(serverAddr, agentID)
+		err := connectAndServe(serverAddr, agentID, tlsConfig)
 		if err != nil {
 			log.Printf("Connection failed: %v. Reconnecting in 5s...", err)
 			time.Sleep(5 * time.Second)
@@ -24,8 +26,9 @@ func StartAgent(serverAddr string) {
 	}
 }
 
-func connectAndServe(serverAddr, agentID string) error {
-	conn, err := grpc.Dial(serverAddr, grpc.WithInsecure())
+func connectAndServe(serverAddr, agentID string, tlsConfig *tls.Config) error {
+	//conn, err := grpc.Dial(serverAddr, grpc.WithInsecure())
+	conn, err := grpc.Dial(serverAddr, grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)))
 	if err != nil {
 		return err
 	}
