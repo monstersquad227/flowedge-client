@@ -139,14 +139,14 @@ func receiveAndHandleMessages(stream pb.FlowEdge_CommunicateClient, agentID stri
 
 		switch msg.Type {
 		case pb.MessageType_EXECUTE_REQUEST:
-			handleExecuteRequest(stream, msg.GetExecuteRequest())
+			handleExecuteRequest(stream, msg.GetExecuteRequest(), agentID)
 		default:
 			log.Printf("Unknown message type received: %v", msg.Type)
 		}
 	}
 }
 
-func handleExecuteRequest(stream pb.FlowEdge_CommunicateClient, req *pb.ExecuteRequest) {
+func handleExecuteRequest(stream pb.FlowEdge_CommunicateClient, req *pb.ExecuteRequest, agentID string) {
 	log.Printf("Executing command: %s", req.Command)
 
 	var output string
@@ -195,7 +195,7 @@ func handleExecuteRequest(stream pb.FlowEdge_CommunicateClient, req *pb.ExecuteR
 			output = result
 		}
 	case "containerDragon":
-		result, err := containerDragon(req.Image)
+		result, err := containerDragon(req.Image, agentID)
 		if err != nil {
 			errStr = err.Error()
 			exitCode = 1

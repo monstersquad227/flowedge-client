@@ -2,12 +2,15 @@ package service
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"flowedge-client/utils"
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/filters"
 	image2 "github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/client"
 	"io/ioutil"
+	"strings"
 )
 
 func newDockerClient() (*client.Client, error) {
@@ -18,7 +21,7 @@ func newDockerClient() (*client.Client, error) {
 	return apiClient, nil
 }
 
-func containerDragon(image string) (string, error) {
+func containerDragon(image, agentID string) (string, error) {
 	dockerClient, err := newDockerClient()
 	if err != nil {
 		return "", err
@@ -28,7 +31,10 @@ func containerDragon(image string) (string, error) {
 		return "", err
 	}
 
-	containers, err := dockerClient.ContainerList(context.Background(), container.ListOptions{All: true})
+	args := filters.NewArgs()
+	args.Add("name", "/"+agentID)
+
+	containers, err := dockerClient.ContainerList(context.Background(), container.ListOptions{All: true, Filters: args})
 	if err != nil {
 		return "", err
 	}
@@ -150,7 +156,27 @@ func PullImage(image string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	result, err := dockerClient.ImagePull(context.Background(), image, image2.PullOptions{})
+
+	type MyAuthConfig struct {
+		Username      string
+		Password      string
+		ServerAddress string
+	}
+	imageSplit := strings.Split(image, "")
+	var auth MyAuthConfig
+	auth.Username = "admin"
+	auth.Password = "cdd.1q2w3e4r"
+	auth.ServerAddress = "https://" + imageSplit[0]
+	authMap := map[string]string{
+		"username":      auth.Username,
+		"password":      auth.Password,
+		"serverAddress": auth.ServerAddress,
+	}
+	authJSON, err := json.Marshal(authMap)
+	if err != nil {
+		return "", err
+	}
+	result, err := dockerClient.ImagePull(context.Background(), image, image2.PullOptions{RegistryAuth: base64.StdEncoding.EncodeToString(authJSON)})
 	if err != nil {
 		return "", err
 	}
