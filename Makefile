@@ -7,7 +7,7 @@ help: ## Display this help.
 .PHONY: generate
 generate: ## Generated Linux
 	@rm -rf ./flowedge_client
-	GOOS=linux GOARCH=amd64 go build -v -o flowedge_client
+	GOOS=linux GOARCH=amd64 go build -v -o flowedge_client_internal
 
 .PHONY: generate-mac-intel
 generate-mac-intel: ## Generate Mac Intel

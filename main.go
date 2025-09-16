@@ -29,7 +29,7 @@ func main() {
 		RootCAs:      certPool,
 	}
 
-	//service.StartAgent("47.103.98.61:50051", tlsConfig)
+	service.StartAgent("192.168.1.112:50051", tlsConfig)
 	//service.StartAgent("10.11.11.56:50051", tlsConfig)
-	service.StartAgent("222.73.137.153:50051", tlsConfig)
+	//service.StartAgent("222.73.137.153:50051", tlsConfig)
 }
