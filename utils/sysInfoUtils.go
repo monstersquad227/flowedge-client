@@ -1,8 +1,14 @@
 package utils
 
 import (
+	"fmt"
+	"github.com/shirou/gopsutil/mem"
 	"net"
 	"os"
+)
+
+var (
+	JVMOPTIONS = initEnv()
 )
 
 func GetAddress() string {
@@ -33,4 +39,27 @@ func GetHostname() string {
 
 func GetAgentID() string {
 	return GetHostname() + "_" + GetAddress()
+}
+
+func initEnv() string {
+	memory, err := mem.VirtualMemory()
+	if err != nil {
+		return ""
+	}
+
+	// 先转换为 MB
+	totalMB := int(memory.Total / 1024 / 1024)
+
+	xmx := int(float64(totalMB) * 0.80) // 80%
+	xms := int(float64(xmx) * 0.5)      // 启动时分配 50%
+	xmn := int(float64(xmx) * 0.4)      // 新生代 40%
+
+	JvmOpts := fmt.Sprintf("-Xms%dm -Xmx%dm -Xmn%dm -Xss256k", xms, xmx, xmn)
+	scriptPath := "/etc/profile.d/jvm_opts.sh"
+	content := fmt.Sprintf("export JAVA_OPTS=\"%s\"\n", JvmOpts)
+	err = os.WriteFile(scriptPath, []byte(content), 0644)
+	if err != nil {
+		return ""
+	}
+	return JvmOpts
 }

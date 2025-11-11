@@ -85,6 +85,9 @@ func CreateContainers(image string) (string, error) {
 			//ExposedPorts: nat.PortSet{
 			//	"8500/tcp": struct{}{},
 			//},
+			Env: []string{
+				"JVM_OPTIONS=" + utils.JVMOPTIONS,
+			},
 		},
 		&container.HostConfig{
 			// Linux 服务器映射目录
