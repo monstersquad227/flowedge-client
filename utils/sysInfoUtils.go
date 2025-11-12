@@ -8,7 +8,8 @@ import (
 )
 
 var (
-	JVMOPTIONS = initEnv()
+	JVMOPTIONS = initJvmEnv()
+	APMOPTIONS = initApmOptions()
 )
 
 func GetAddress() string {
@@ -37,11 +38,19 @@ func GetHostname() string {
 	return hostname
 }
 
+func getHostNameRemoveSuffix() string {
+	hostname := GetHostname()
+	if len(hostname) <= 2 {
+		return hostname
+	}
+	return hostname[:len(hostname)-2]
+}
+
 func GetAgentID() string {
 	return GetHostname() + "_" + GetAddress()
 }
 
-func initEnv() string {
+func initJvmEnv() string {
 	memory, err := mem.VirtualMemory()
 	if err != nil {
 		return ""
@@ -62,4 +71,10 @@ func initEnv() string {
 		return ""
 	}
 	return JvmOpts
+}
+
+func initApmOptions() string {
+	hostname := getHostNameRemoveSuffix()
+	ApmOpts := fmt.Sprintf("-javaagent:/opt/aliyun-java-agent.jar -Darms.licenseKey=ktnay@7cd9f8c8b1baf0d -Darms.appName=%s", hostname)
+	return ApmOpts
 }

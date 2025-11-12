@@ -87,6 +87,7 @@ func CreateContainers(image string) (string, error) {
 			//},
 			Env: []string{
 				"JVM_OPTIONS=" + utils.JVMOPTIONS,
+				"APM_OPTIONS=" + utils.APMOPTIONS,
 			},
 		},
 		&container.HostConfig{
